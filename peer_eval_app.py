@@ -5,9 +5,9 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 # --- CONFIGURATION ---
-ADMIN_PASSWORD = "ADMIN@1234$"  
+ADMIN_PASSWORD = "ADMIN@1234$"
 STUDENT_FILE = "students.csv"
-GOOGLE_SHEET_NAME = "Peer Evaluation Results" 
+GOOGLE_SHEET_NAME = "Peer Evaluation Results"
 
 # --- TEXT CONTENT ---
 TITLE = "Self and Peer Evaluation Feedback Form - MECE 2310U"
@@ -42,9 +42,8 @@ def get_google_sheet_connection():
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
-        # Load credentials from Streamlit Secrets
         if "gcp_service_account" not in st.secrets:
-            st.error("Secrets not found! Please add [gcp_service_account] in Streamlit Settings.")
+            st.error("Secrets not found!")
             return None
             
         s_info = st.secrets["gcp_service_account"]
@@ -59,26 +58,9 @@ def get_google_sheet_connection():
 
 def get_sheet():
     gc = get_google_sheet_connection()
-    if not gc:
-        return None
-        
+    if not gc: return None
     try:
-        # Try to open the specific sheet
         return gc.open(GOOGLE_SHEET_NAME).sheet1
-    except gspread.exceptions.SpreadsheetNotFound:
-        # DEBUGGING HELPER: If not found, list what we CAN see
-        st.error(f"❌ Could not find sheet: '{GOOGLE_SHEET_NAME}'")
-        try:
-            available_sheets = gc.openall()
-            if available_sheets:
-                names = [s.title for s in available_sheets]
-                st.warning(f"The Robot can see these sheets: {names}. Please match the name exactly.")
-            else:
-                st.error("The Robot cannot see ANY sheets. Did you share it with the client_email?")
-                st.code(st.secrets["gcp_service_account"]["client_email"], language="text")
-        except Exception as e:
-            st.error(f"Could not list sheets either: {e}")
-        return None
     except Exception as e:
         st.error(f"Connection Error: {e}")
         return None
@@ -96,160 +78,21 @@ def load_students():
 
 def save_to_google_sheets(current_user_id, new_rows):
     sheet = get_sheet()
-    if not sheet:
-        return False
-        
+    if not sheet: return False
     try:
-        # 1. Get all existing data
         try:
             all_data = sheet.get_all_records()
             df = pd.DataFrame(all_data)
         except:
             df = pd.DataFrame() 
 
-        # 2. Filter out OLD entries from this user (Overwrite logic)
         if not df.empty and 'Evaluator ID' in df.columns:
             df['Evaluator ID'] = df['Evaluator ID'].astype(str)
             df = df[df['Evaluator ID'] != str(current_user_id)]
         
-        # 3. Add the NEW data
         new_df = pd.DataFrame(new_rows)
         final_df = pd.concat([df, new_df], ignore_index=True)
         
-        # 4. Clear Sheet and Rewrite 
         sheet.clear()
         if not final_df.empty:
-            sheet.append_row(final_df.columns.tolist())
-            sheet.append_rows(final_df.values.tolist())
-        return True
-    except Exception as e:
-        st.error(f"Error saving data: {e}")
-        return False
-
-# --- MAIN APP ---
-st.set_page_config(page_title="Peer Evaluation", layout="wide")
-
-if 'user' not in st.session_state:
-    st.session_state['user'] = None
-
-# --- SIDEBAR ---
-with st.sidebar:
-    st.header("Teacher Access")
-    if st.text_input("Admin Password", type="password") == ADMIN_PASSWORD:
-        st.success("Connected to Google Sheets")
-        if st.button("Test Connection"):
-            sheet = get_sheet()
-            if sheet:
-                st.success(f"Successfully connected to: {GOOGLE_SHEET_NAME}")
-        
-        st.divider()
-        if st.button("Calculate Grades Now"):
-            sheet = get_sheet()
-            if sheet:
-                data = sheet.get_all_records()
-                df = pd.DataFrame(data)
-                if not df.empty:
-                    summary = df.groupby('Peer Name')['Overall Score'].mean().reset_index()
-                    summary.columns = ['Student Name', 'Average Received Score (%)']
-                    st.dataframe(summary)
-                else:
-                    st.warning("No data yet.")
-
-# --- LOGIN PAGE ---
-if st.session_state['user'] is None:
-    st.title(TITLE)
-    st.subheader("Step 1: Identification")
-    df_students = load_students()
-    if df_students is not None:
-        names = sorted(df_students['Student Name'].unique().tolist())
-        selected_name = st.selectbox("Select your name:", [""] + names)
-        student_id = st.text_input("Enter your Student Number (Password):", type="password")
-        
-        if st.button("Login"):
-            user_record = df_students[(df_students['Student Name'] == selected_name) & (df_students['Student ID'] == student_id)]
-            if not user_record.empty:
-                st.session_state['user'] = user_record.iloc[0].to_dict()
-                st.rerun()
-            else:
-                st.error("Login Failed: Name and Student Number do not match.")
-
-# --- EVALUATION PAGE ---
-else:
-    user = st.session_state['user']
-    st.title(TITLE)
-    st.markdown(CONFIDENTIALITY_TEXT)
-    
-    col1, col2 = st.columns([8,1])
-    with col1: st.info(f"Logged in as: **{user['Student Name']}** (Group {user['Group #']})")
-    with col2: 
-        if st.button("Logout"):
-            st.session_state['user'] = None
-            st.rerun()
-            
-    df_students = load_students()
-    group_members = df_students[df_students['Group #'] == user['Group #']]
-    
-    with st.form("eval_form"):
-        st.subheader("FIVE EVALUATION CRITERIA")
-        st.write("Please assign 0-100% for each criterion.")
-        st.caption(MULTIPLE_ATTEMPT_TEXT)
-        
-        submission_data = []
-        
-        for idx, member in group_members.iterrows():
-            st.markdown(f"--- \n ### Evaluating: {member['Student Name']}")
-            if member['Student Name'] == user['Student Name']:
-                st.caption("(This is your Self-Evaluation)")
-
-            # Create columns for the 5 criteria + 1 for the score
-            cols = st.columns(len(CRITERIA) + 1)
-            member_scores = []
-            
-            for i, criterion in enumerate(CRITERIA):
-                with cols[i]:
-                    # Note: Changing this number triggers a rerun, which updates the average
-                    score = st.number_input(
-                        criterion, 
-                        min_value=0, max_value=100, value=0, step=5, 
-                        key=f"{member['Student ID']}_{i}"
-                    )
-                    member_scores.append(score)
-            
-            # Calculate Average immediately
-            avg = sum(member_scores) / len(member_scores) if member_scores else 0
-            cols[-1].metric("OVERALL SCORE", f"{avg:.1f}%")
-            
-            row = {
-                "Evaluator": user['Student Name'],
-                "Evaluator ID": str(user['Student ID']),
-                "Group": user['Group #'],
-                "Peer Name": member['Student Name'],
-                "Peer ID": str(member['Student ID']),
-                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Overall Score": avg
-            }
-            for i, cr in enumerate(CRITERIA): row[cr] = member_scores[i]
-            submission_data.append(row)
-
-        st.markdown("---")
-        st.subheader("Comments")
-        
-        q1 = st.text_area("If you have given 90% or less “overall average evaluation score” to one (or more) team members, please explain why:")
-        q2 = st.text_area("If you think you might get 90% or less \"overall average\" score by other members, please explain why:")
-        
-        st.subheader("Signature")
-        sig = st.text_input("Signature (Just print name is enough):")
-        
-        submitted = st.form_submit_button("Submit to Google Sheets")
-        
-        if submitted:
-            for row in submission_data:
-                row["Comment (Low Score Given)"] = q1
-                row["Comment (Low Score Received)"] = q2
-                row["Signature"] = sig
-            
-            with st.spinner("Saving to Google Sheets..."):
-                success = save_to_google_sheets(user['Student ID'], submission_data)
-                if success:
-                    st.success("Saved successfully! You may close the tab.")
-                    st.balloons()
+            sheet.append_row(final_
