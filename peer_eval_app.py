@@ -9,7 +9,7 @@ ADMIN_PASSWORD = "ADMIN@1234$"
 STUDENT_FILE = "students.csv"
 GOOGLE_SHEET_NAME = "Peer Evaluation Results" 
 
-# --- UPDATED TEXT CONTENT ---
+# --- TEXT CONTENT ---
 TITLE = "Self and Peer Evaluation Feedback Form - MECE 2310U"
 
 CONFIDENTIALITY_TEXT = """
@@ -34,8 +34,7 @@ CRITERIA = [
     "Attitudes & Commitment"
 ]
 
-# --- GOOGLE SHEETS CONNECTION (Fixed) ---
-# We use cache_resource to hold the connection stable across re-runs
+# --- GOOGLE SHEETS CONNECTION ---
 @st.cache_resource
 def get_google_sheet_connection():
     try:
@@ -43,6 +42,11 @@ def get_google_sheet_connection():
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
+        # Load credentials from Streamlit Secrets
+        if "gcp_service_account" not in st.secrets:
+            st.error("Secrets not found! Please add [gcp_service_account] in Streamlit Settings.")
+            return None
+            
         s_info = st.secrets["gcp_service_account"]
         credentials = Credentials.from_service_account_info(
             s_info, scopes=scopes
@@ -50,17 +54,34 @@ def get_google_sheet_connection():
         gc = gspread.authorize(credentials)
         return gc
     except Exception as e:
+        st.error(f"Authentication Error: {e}")
         return None
 
 def get_sheet():
     gc = get_google_sheet_connection()
-    if gc:
+    if not gc:
+        return None
+        
+    try:
+        # Try to open the specific sheet
+        return gc.open(GOOGLE_SHEET_NAME).sheet1
+    except gspread.exceptions.SpreadsheetNotFound:
+        # DEBUGGING HELPER: If not found, list what we CAN see
+        st.error(f"❌ Could not find sheet: '{GOOGLE_SHEET_NAME}'")
         try:
-            return gc.open(GOOGLE_SHEET_NAME).sheet1
+            available_sheets = gc.openall()
+            if available_sheets:
+                names = [s.title for s in available_sheets]
+                st.warning(f"The Robot can see these sheets: {names}. Please match the name exactly.")
+            else:
+                st.error("The Robot cannot see ANY sheets. Did you share it with the client_email?")
+                st.code(st.secrets["gcp_service_account"]["client_email"], language="text")
         except Exception as e:
-            st.error(f"Could not find the Sheet: {GOOGLE_SHEET_NAME}. Error: {e}")
-            return None
-    return None
+            st.error(f"Could not list sheets either: {e}")
+        return None
+    except Exception as e:
+        st.error(f"Connection Error: {e}")
+        return None
 
 # --- DATA FUNCTIONS ---
 @st.cache_data
@@ -76,7 +97,6 @@ def load_students():
 def save_to_google_sheets(current_user_id, new_rows):
     sheet = get_sheet()
     if not sheet:
-        st.error("Connection Error: Could not connect to Google Sheets.")
         return False
         
     try:
@@ -98,7 +118,6 @@ def save_to_google_sheets(current_user_id, new_rows):
         
         # 4. Clear Sheet and Rewrite 
         sheet.clear()
-        # Add headers
         if not final_df.empty:
             sheet.append_row(final_df.columns.tolist())
             sheet.append_rows(final_df.values.tolist())
@@ -118,15 +137,18 @@ with st.sidebar:
     st.header("Teacher Access")
     if st.text_input("Admin Password", type="password") == ADMIN_PASSWORD:
         st.success("Connected to Google Sheets")
-        st.info("Check your Google Sheet named 'Peer Evaluation Results' to see live data.")
+        if st.button("Test Connection"):
+            sheet = get_sheet()
+            if sheet:
+                st.success(f"Successfully connected to: {GOOGLE_SHEET_NAME}")
         
+        st.divider()
         if st.button("Calculate Grades Now"):
             sheet = get_sheet()
             if sheet:
                 data = sheet.get_all_records()
                 df = pd.DataFrame(data)
                 if not df.empty:
-                    # Calculate average received score per student
                     summary = df.groupby('Peer Name')['Overall Score'].mean().reset_index()
                     summary.columns = ['Student Name', 'Average Received Score (%)']
                     st.dataframe(summary)
@@ -169,7 +191,7 @@ else:
     
     with st.form("eval_form"):
         st.subheader("FIVE EVALUATION CRITERIA")
-        st.write("Please assign 0-100% for each criterion to yourself and to all your group peers for their group work contributions as deserved.")
+        st.write("Please assign 0-100% for each criterion.")
         st.caption(MULTIPLE_ATTEMPT_TEXT)
         
         submission_data = []
@@ -179,14 +201,21 @@ else:
             if member['Student Name'] == user['Student Name']:
                 st.caption("(This is your Self-Evaluation)")
 
+            # Create columns for the 5 criteria + 1 for the score
             cols = st.columns(len(CRITERIA) + 1)
             member_scores = []
             
             for i, criterion in enumerate(CRITERIA):
                 with cols[i]:
-                    score = st.number_input(criterion, min_value=0, max_value=100, value=0, step=5, key=f"{member['Student ID']}_{i}")
+                    # Note: Changing this number triggers a rerun, which updates the average
+                    score = st.number_input(
+                        criterion, 
+                        min_value=0, max_value=100, value=0, step=5, 
+                        key=f"{member['Student ID']}_{i}"
+                    )
                     member_scores.append(score)
             
+            # Calculate Average immediately
             avg = sum(member_scores) / len(member_scores) if member_scores else 0
             cols[-1].metric("OVERALL SCORE", f"{avg:.1f}%")
             
@@ -205,8 +234,8 @@ else:
         st.markdown("---")
         st.subheader("Comments")
         
-        q1 = st.text_area("If you have given 90% or less “overall average evaluation score” to one (or more) team members, please explain within the rectangle below why the particular team member (or members) deserve the low score. Please provide specific and objective reasons.")
-        q2 = st.text_area("If you think you might get 90% or less \"overall average\" score by other members, please explain within the rectangle below why you would NOT deserve the low score. Please provide specific and objective reasons.")
+        q1 = st.text_area("If you have given 90% or less “overall average evaluation score” to one (or more) team members, please explain why:")
+        q2 = st.text_area("If you think you might get 90% or less \"overall average\" score by other members, please explain why:")
         
         st.subheader("Signature")
         sig = st.text_input("Signature (Just print name is enough):")
@@ -214,7 +243,6 @@ else:
         submitted = st.form_submit_button("Submit to Google Sheets")
         
         if submitted:
-            # No validation check on signature anymore
             for row in submission_data:
                 row["Comment (Low Score Given)"] = q1
                 row["Comment (Low Score Received)"] = q2
