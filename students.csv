@@ -1,102 +1,102 @@
-﻿Student Name,Student ID,Group #
-"Corallo, Dave",100969546,1
-"Mynhardt, Ryan",100976284,1
-"Pirabaharan, Piraveen",100982794,1
-"Rossi, Michael",100921105,1
-"Struck, Matthew",100969940,1
-"Zhang, Talon",101000511,1
-"Chowdhury, Md. Junaid",100994216,2
-"Hussain, Faraz",100965539,2
-"Lobo, Connell",100993282,2
-"Tasnim, Sayma",100878993,2
-"Tayeb, Ellaha",100976301,2
-"Zaman, Adeeba",100974390,2
-"Aamir, Mohid",100970233,3
-"Ballesteros, Mitchell III Bordador",100787475,3
-"Barbary, Yusuf",100974730,3
-"Buvanendran, Harish",100980166,3
-"Mano, Kevin",100918466,3
-"Pushkarna, Ishaan",100966567,3
-"Hakemi, Arfan",100970701,4
-"Huruy, Huruy",100996468,4
-"Rodriguez Reid, Mateo",100968010,4
-"Saidajan, Ibrahim",100978455,4
-"Siddiqi, Yousuf",100924929,4
-"Virk, Momen",100977182,4
-"Anca, Andrew",100973563,5
-"Cheung, Marc",100967098,5
-"Hutchinson, Darren",100877822,5
-"Liga, Easton",100971665,5
-"Mukadam, Rayan",100966298,5
-"Ojo, Samuel",100980867,5
-"Caicedo Morales, Jeronimo",101000032,6
-"Jayswal, Shivam",100927742,6
-"Khan, Saafir",100970170,6
-"Long, Jordan",100926973,6
-"Thanthrimudali, Angelo",100674600,6
-"Badakh, Svarnaraj",100973723,7
-"Hill, Mason",100980579,7
-"maclean, bowen",100793781,7
-"Nagee, Ibraheem",100748086,7
-"Norrmalm, Ryan",100972299,7
-"Shim, Zackary",100894851,7
-"Ahmed, Mahmoud Mohamed Mostafa Abdelk",100952095,8
-"De Ramos, Lance",100975402,8
-"Huynh, Loc",100965493,8
-"Jeyarajah, Luxan",100828350,8
-"Lunardon, Luca",100984442,8
-"Paladichuk, Riley",100925659,8
-"Butt, Sana",100960367,9
-"Farid, Sara",100962948,9
-"Lai, Dominic",100971959,9
-"Patel, Neel",100972046,9
-"Talaslian, Marcus",101001132,9
-"Blake, Kayonna",100965202,10
-"Chokas, Cameron",100817288,10
-"David, Rebekah",100968980,10
-"Dayot, Miguel",100919681,10
-"McCaig, Riley",100865482,10
-"Pavao, Christopher",100969921,10
-"Ashish, Aryan",100961453,11
-"Gonzalez Alvarez, Daniel",100904202,11
-"Khalil, Ali",100973462,11
-"Odunaiya, Feranmi",100973178,11
-"Quan, Ben",100988228,11
-"Sulaiman, Issa",100970515,11
-"Bozz, Daniel",100968168,12
-"Lin, Kevin",100935279,12
-"Osman, Mohab",100780181,12
-"Rizvi, Hiba",100994864,12
-"Santhakumar, Abilaas",100915858,12
-"Somorin, Fiyifoluwa",100961455,12
-"Abate, Peter",100965508,13
-"Bell, Noah",100970277,13
-"Bogaert, Chloe",100968665,13
-"Bremner, Adam",100924854,13
-"Chionglo, Riley",100963723,13
-"Mueller Lopez, Alexander",100924505,13
-"Baldi, Lucas",100965185,14
-"Beecher, Jaden",100970088,14
-"Bonafede, Alejandro",100977494,14
-"Johnson-Rodriguez, Tristan",100975407,14
-"Maglioli, Juliano",100828102,14
-"Masri, yousef",100962750,14
-"Biondi De Souza E Silva, Luis",100973997,15
-"Freeman Taylor, Ellie",100965128,15
-"Hopcraft, Tori",100968130,15
-"Smith, Sam",100972090,15
-"Valdez, Roman",100965959,15
-"Walters, Kieran",100971823,15
-"Celebre, Diego",100976522,16
-"Haupt, Evan",100969942,16
-"Loisel, Liam",100970240,16
-"Simpson, Josh",100976017,16
-"Van Ry, Tyler",100972566,16
-"Wojtczak, Sebastian",100982392,16
-"Edwards, Shaun",100965544,16
-"Ramanathan, Velan",100977682,16
-"Afifi, Talal",100968603,17
-"Dhillon, Arjen Dhillon",100979910,17
-"Marquez, Gregory",100970696,17
-"Patel, Dev",100972093,17
-"Tavares, Adam",100978315,17
+﻿Student Name,Student ID,Group #,Email Address
+"Corallo, Dave",100969546,1,mjganji06@gmail.com
+"Mynhardt, Ryan",100976284,1,mjganji06@gmail.com
+"Pirabaharan, Piraveen",100982794,1,mjganji06@gmail.com
+"Rossi, Michael",100921105,1,mjganji06@gmail.com
+"Struck, Matthew",100969940,1,mjganji06@gmail.com
+"Zhang, Talon",101000511,1,mjganji06@gmail.com
+"Chowdhury, Md. Junaid",100994216,2,mjganji06@gmail.com
+"Hussain, Faraz",100965539,2,mjganji06@gmail.com
+"Lobo, Connell",100993282,2,mjganji06@gmail.com
+"Tasnim, Sayma",100878993,2,mjganji06@gmail.com
+"Tayeb, Ellaha",100976301,2,mjganji06@gmail.com
+"Zaman, Adeeba",100974390,2,mjganji06@gmail.com
+"Aamir, Mohid",100970233,3,mjganji06@gmail.com
+"Ballesteros, Mitchell III Bordador",100787475,3,mjganji06@gmail.com
+"Barbary, Yusuf",100974730,3,mjganji06@gmail.com
+"Buvanendran, Harish",100980166,3,mjganji06@gmail.com
+"Mano, Kevin",100918466,3,mjganji06@gmail.com
+"Pushkarna, Ishaan",100966567,3,mjganji06@gmail.com
+"Hakemi, Arfan",100970701,4,mjganji06@gmail.com
+"Huruy, Huruy",100996468,4,mjganji06@gmail.com
+"Rodriguez Reid, Mateo",100968010,4,mjganji06@gmail.com
+"Saidajan, Ibrahim",100978455,4,mjganji06@gmail.com
+"Siddiqi, Yousuf",100924929,4,mjganji06@gmail.com
+"Virk, Momen",100977182,4,mjganji06@gmail.com
+"Anca, Andrew",100973563,5,mjganji06@gmail.com
+"Cheung, Marc",100967098,5,mjganji06@gmail.com
+"Hutchinson, Darren",100877822,5,mjganji06@gmail.com
+"Liga, Easton",100971665,5,mjganji06@gmail.com
+"Mukadam, Rayan",100966298,5,mjganji06@gmail.com
+"Ojo, Samuel",100980867,5,mjganji06@gmail.com
+"Caicedo Morales, Jeronimo",101000032,6,mjganji06@gmail.com
+"Jayswal, Shivam",100927742,6,mjganji06@gmail.com
+"Khan, Saafir",100970170,6,mjganji06@gmail.com
+"Long, Jordan",100926973,6,mjganji06@gmail.com
+"Thanthrimudali, Angelo",100674600,6,mjganji06@gmail.com
+"Badakh, Svarnaraj",100973723,7,mjganji06@gmail.com
+"Hill, Mason",100980579,7,mjganji06@gmail.com
+"maclean, bowen",100793781,7,mjganji06@gmail.com
+"Nagee, Ibraheem",100748086,7,mjganji06@gmail.com
+"Norrmalm, Ryan",100972299,7,mjganji06@gmail.com
+"Shim, Zackary",100894851,7,mjganji06@gmail.com
+"Ahmed, Mahmoud Mohamed Mostafa Abdelk",100952095,8,mjganji06@gmail.com
+"De Ramos, Lance",100975402,8,mjganji06@gmail.com
+"Huynh, Loc",100965493,8,mjganji06@gmail.com
+"Jeyarajah, Luxan",100828350,8,mjganji06@gmail.com
+"Lunardon, Luca",100984442,8,mjganji06@gmail.com
+"Paladichuk, Riley",100925659,8,mjganji06@gmail.com
+"Butt, Sana",100960367,9,mjganji06@gmail.com
+"Farid, Sara",100962948,9,mjganji06@gmail.com
+"Lai, Dominic",100971959,9,mjganji06@gmail.com
+"Patel, Neel",100972046,9,mjganji06@gmail.com
+"Talaslian, Marcus",101001132,9,mjganji06@gmail.com
+"Blake, Kayonna",100965202,10,mjganji06@gmail.com
+"Chokas, Cameron",100817288,10,mjganji06@gmail.com
+"David, Rebekah",100968980,10,mjganji06@gmail.com
+"Dayot, Miguel",100919681,10,mjganji06@gmail.com
+"McCaig, Riley",100865482,10,mjganji06@gmail.com
+"Pavao, Christopher",100969921,10,mjganji06@gmail.com
+"Ashish, Aryan",100961453,11,mjganji06@gmail.com
+"Gonzalez Alvarez, Daniel",100904202,11,mjganji06@gmail.com
+"Khalil, Ali",100973462,11,mjganji06@gmail.com
+"Odunaiya, Feranmi",100973178,11,mjganji06@gmail.com
+"Quan, Ben",100988228,11,mjganji06@gmail.com
+"Sulaiman, Issa",100970515,11,mjganji06@gmail.com
+"Bozz, Daniel",100968168,12,mjganji06@gmail.com
+"Lin, Kevin",100935279,12,mjganji06@gmail.com
+"Osman, Mohab",100780181,12,mjganji06@gmail.com
+"Rizvi, Hiba",100994864,12,mjganji06@gmail.com
+"Santhakumar, Abilaas",100915858,12,mjganji06@gmail.com
+"Somorin, Fiyifoluwa",100961455,12,mjganji06@gmail.com
+"Abate, Peter",100965508,13,mjganji06@gmail.com
+"Bell, Noah",100970277,13,mjganji66@gmail.com
+"Bogaert, Chloe",100968665,13,mjganji06@gmail.com
+"Bremner, Adam",100924854,13,mjganji06@gmail.com
+"Chionglo, Riley",100963723,13,mjganji06@gmail.com
+"Mueller Lopez, Alexander",100924505,13,mjganji06@gmail.com
+"Baldi, Lucas",100965185,14,mjganji06@gmail.com
+"Beecher, Jaden",100970088,14,mjganji06@gmail.com
+"Bonafede, Alejandro",100977494,14,mjganji06@gmail.com
+"Johnson-Rodriguez, Tristan",100975407,14,mjganji06@gmail.com
+"Maglioli, Juliano",100828102,14,mjganji06@gmail.com
+"Masri, yousef",100962750,14,mjganji06@gmail.com
+"Biondi De Souza E Silva, Luis",100973997,15,mjganji06@gmail.com
+"Freeman Taylor, Ellie",100965128,15,mjganji06@gmail.com
+"Hopcraft, Tori",100968130,15,mjganji06@gmail.com
+"Smith, Sam",100972090,15,mjganji06@gmail.com
+"Valdez, Roman",100965959,15,mjganji06@gmail.com
+"Walters, Kieran",100971823,15,mjganji06@gmail.com
+"Celebre, Diego",100976522,16,mjganji06@gmail.com
+"Haupt, Evan",100969942,16,mjganji06@gmail.com
+"Loisel, Liam",100970240,16,mjganji06@gmail.com
+"Simpson, Josh",100976017,16,mjganji06@gmail.com
+"Van Ry, Tyler",100972566,16,mjganji06@gmail.com
+"Wojtczak, Sebastian",100982392,16,mjganji06@gmail.com
+"Edwards, Shaun",100965544,16,mjganji06@gmail.com
+"Ramanathan, Velan",100977682,16,mjganji06@gmail.com
+"Afifi, Talal",100968603,17,mjganji06@gmail.com
+"Dhillon, Arjen Dhillon",100979910,17,mjganji06@gmail.com
+"Marquez, Gregory",100970696,17,mjganji06@gmail.com
+"Patel, Dev",100972093,17,mjganji06@gmail.com
+"Tavares, Adam",100978315,17,mjganji06@gmail.com
