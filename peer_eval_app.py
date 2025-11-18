@@ -2,10 +2,14 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-from datetime import datetime
+from datetime import datetime, timedelta
+import smtplib
+import ssl
+from email.message import EmailMessage
+import random
+import time
 
 # --- CONFIGURATION ---
-ADMIN_PASSWORD = "ADMIN@1234$"
 STUDENT_FILE = "students.csv"
 GOOGLE_SHEET_NAME = "Peer Evaluation Results"
 
@@ -33,6 +37,40 @@ CRITERIA = [
     "Amount of Work",
     "Attitudes & Commitment"
 ]
+
+# --- EMAIL / OTP FUNCTIONS ---
+def send_otp_email(to_email, otp_code):
+    try:
+        email_secrets = st.secrets["email"]
+        sender_email = email_secrets["sender_email"]
+        sender_password = email_secrets["sender_password"]
+        smtp_server = email_secrets["smtp_server"]
+        smtp_port = email_secrets["smtp_port"]
+
+        msg = EmailMessage()
+        msg.set_content(f"Your Verification Code for Peer Evaluation is: {otp_code}\n\nThis code expires in 1 hour.")
+        msg["Subject"] = "Peer Evaluation Access Code"
+        msg["From"] = sender_email
+        msg["To"] = to_email
+
+        # Context for SSL
+        context = ssl.create_default_context()
+
+        # Connect and send
+        # Logic handles both SSL (465) and STARTTLS (587)
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as server:
+                server.login(sender_email, sender_password)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls(context=context)
+                server.login(sender_email, sender_password)
+                server.send_message(msg)
+        return True
+    except Exception as e:
+        st.error(f"Failed to send email: {e}")
+        return False
 
 # --- GOOGLE SHEETS CONNECTION ---
 @st.cache_resource
@@ -71,6 +109,8 @@ def load_students():
     try:
         df = pd.read_csv(STUDENT_FILE)
         df['Student ID'] = df['Student ID'].astype(str)
+        # Clean up column names (strip spaces)
+        df.columns = df.columns.str.strip()
         return df
     except Exception as e:
         st.error(f"Error loading student list: {e}")
@@ -106,43 +146,109 @@ def save_to_google_sheets(current_user_id, new_rows):
 # --- MAIN APP ---
 st.set_page_config(page_title="Peer Evaluation", layout="wide")
 
+# Custom CSS for Score Box
+st.markdown("""
+<style>
+    .score-box {
+        padding: 10px;
+        border-radius: 10px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 20px;
+        margin-top: 25px;
+        color: white;
+    }
+    .score-green { background-color: #28a745; }
+    .score-red { background-color: #dc3545; } 
+</style>
+""", unsafe_allow_html=True)
+
+# Initialize Session State
 if 'user' not in st.session_state:
     st.session_state['user'] = None
+if 'otp_sent' not in st.session_state:
+    st.session_state['otp_sent'] = False
+if 'otp_code' not in st.session_state:
+    st.session_state['otp_code'] = None
+if 'otp_expiry' not in st.session_state:
+    st.session_state['otp_expiry'] = None
+if 'selected_student_data' not in st.session_state:
+    st.session_state['selected_student_data'] = None
 
-# --- SIDEBAR ---
-with st.sidebar:
-    st.header("Teacher Access")
-    if st.text_input("Admin Password", type="password") == ADMIN_PASSWORD:
-        st.success("Access Granted")
-        if st.button("Calculate Grades Now"):
-            sheet = get_sheet()
-            if sheet:
-                data = sheet.get_all_records()
-                df = pd.DataFrame(data)
-                if not df.empty:
-                    summary = df.groupby('Peer Name')['Overall Score'].mean().reset_index()
-                    summary.columns = ['Student Name', 'Avg Received Score']
-                    st.dataframe(summary)
-                else:
-                    st.warning("No data.")
-
-# --- LOGIN ---
+# --- LOGIN FLOW (OTP) ---
 if st.session_state['user'] is None:
     st.title(TITLE)
-    st.subheader("Step 1: Identification")
+    st.subheader("Step 1: Secure Login")
+    
     df_students = load_students()
+    
     if df_students is not None:
-        names = sorted(df_students['Student Name'].unique().tolist())
-        selected_name = st.selectbox("Select your name:", [""] + names)
-        student_id = st.text_input("Enter your Student Number (Password):", type="password")
+        # STAGE 1: Select Name
+        if not st.session_state['otp_sent']:
+            names = sorted(df_students['Student Name'].unique().tolist())
+            selected_name = st.selectbox("Select your name:", [""] + names)
+            
+            if st.button("Send Verification Code"):
+                if selected_name:
+                    # Find email
+                    student_record = df_students[df_students['Student Name'] == selected_name]
+                    if not student_record.empty:
+                        if 'Email' not in student_record.columns:
+                            st.error("Error: 'Email' column not found in student database.")
+                        else:
+                            email_addr = student_record.iloc[0]['Email']
+                            
+                            # Generate OTP
+                            otp = str(random.randint(100000, 999999))
+                            expiry = datetime.now() + timedelta(hours=1)
+                            
+                            # Store in session
+                            st.session_state['otp_code'] = otp
+                            st.session_state['otp_expiry'] = expiry
+                            st.session_state['selected_student_data'] = student_record.iloc[0].to_dict()
+                            
+                            # Send Email
+                            with st.spinner(f"Sending code to {email_addr}..."):
+                                if send_otp_email(email_addr, otp):
+                                    st.session_state['otp_sent'] = True
+                                    st.success(f"Code sent to {email_addr}. Check your inbox (and spam).")
+                                    st.rerun()
+                    else:
+                        st.error("Student not found.")
+                else:
+                    st.warning("Please select a name.")
         
-        if st.button("Login"):
-            user_record = df_students[(df_students['Student Name'] == selected_name) & (df_students['Student ID'] == student_id)]
-            if not user_record.empty:
-                st.session_state['user'] = user_record.iloc[0].to_dict()
-                st.rerun()
-            else:
-                st.error("Login Failed.")
+        # STAGE 2: Verify OTP
+        else:
+            st.info(f"Code sent to your email. It expires in 1 hour.")
+            
+            otp_input = st.text_input("Enter the 6-digit code:", max_chars=6)
+            
+            col1, col2 = st.columns([1,1])
+            with col1:
+                if st.button("Login"):
+                    current_time = datetime.now()
+                    saved_otp = st.session_state['otp_code']
+                    expiry_time = st.session_state['otp_expiry']
+                    
+                    if otp_input == saved_otp:
+                        if current_time < expiry_time:
+                            st.session_state['user'] = st.session_state['selected_student_data']
+                            st.success("Login Successful!")
+                            st.rerun()
+                        else:
+                            st.error("Code expired. Please start over.")
+                            if st.button("Start Over"):
+                                st.session_state['otp_sent'] = False
+                                st.rerun()
+                    else:
+                        st.error("Invalid Code.")
+            
+            with col2:
+                if st.button("Resend / Change Name"):
+                    st.session_state['otp_sent'] = False
+                    st.session_state['otp_code'] = None
+                    st.rerun()
 
 # --- EVALUATION FORM (LIVE MODE) ---
 else:
@@ -155,6 +261,7 @@ else:
     with col2: 
         if st.button("Logout"):
             st.session_state['user'] = None
+            st.session_state['otp_sent'] = False
             st.rerun()
             
     df_students = load_students()
@@ -164,7 +271,6 @@ else:
     st.write("Assign 0-100% for each criterion. **Press Enter/Tab after typing to update the total.**")
     st.caption(MULTIPLE_ATTEMPT_TEXT)
     
-    # We removed the "with st.form" wrapper so updates happen instantly
     submission_data = []
     
     for idx, member in group_members.iterrows():
@@ -175,25 +281,20 @@ else:
         cols = st.columns(len(CRITERIA) + 1)
         member_scores = []
         
-        # Inputs
         for i, criterion in enumerate(CRITERIA):
             with cols[i]:
-                # The input box
                 score = st.number_input(
                     criterion, 
                     min_value=0, max_value=100, value=0, step=5, 
                     key=f"{member['Student ID']}_{i}"
                 )
-                # Highlight Logic: If < 80, show visual warning
                 if score < 80:
                     st.markdown(":red[⚠️ **< 80%**]")
-                
                 member_scores.append(score)
         
-        # Automatic Calculation
         avg = sum(member_scores) / len(member_scores) if member_scores else 0
         
-        # Standard Metric Box (Reverted as requested)
+        # Standard Metric Box
         with cols[-1]:
             st.metric(label="OVERALL SCORE", value=f"{avg:.1f}%")
         
@@ -218,9 +319,8 @@ else:
     st.subheader("Signature")
     sig = st.text_input("Signature (Just print name is enough):")
     
-    st.write("") # Spacer
+    st.write("") 
     
-    # Submit Button (Now standalone)
     if st.button("Submit to Google Sheets", type="primary"):
         for row in submission_data:
             row["Comment (Low Score Given)"] = q1
