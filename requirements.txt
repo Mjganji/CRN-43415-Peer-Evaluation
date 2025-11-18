@@ -1,5 +1,5 @@
 streamlit
 pandas
-gspread>=5.10.0
+gspread==6.1.2
 google-auth>=2.0.0
 requests
