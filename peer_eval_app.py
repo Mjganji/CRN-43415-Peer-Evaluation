@@ -95,4 +95,157 @@ def save_to_google_sheets(current_user_id, new_rows):
         
         sheet.clear()
         if not final_df.empty:
-            sheet.append_row(final_
+            sheet.append_row(final_df.columns.tolist())
+            sheet.append_rows(final_df.values.tolist())
+        return True
+    except Exception as e:
+        st.error(f"Error saving data: {e}")
+        return False
+
+# --- MAIN APP ---
+st.set_page_config(page_title="Peer Evaluation", layout="wide")
+
+# Custom CSS to make the Score Box look good
+st.markdown("""
+<style>
+    .score-box {
+        padding: 10px;
+        border-radius: 10px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 20px;
+        margin-top: 25px;
+        color: white;
+    }
+    .score-green { background-color: #28a745; } /* Green */
+    .score-red { background-color: #dc3545; }   /* Red */
+</style>
+""", unsafe_allow_html=True)
+
+if 'user' not in st.session_state:
+    st.session_state['user'] = None
+
+# --- SIDEBAR ---
+with st.sidebar:
+    st.header("Teacher Access")
+    if st.text_input("Admin Password", type="password") == ADMIN_PASSWORD:
+        st.success("Access Granted")
+        if st.button("Calculate Grades Now"):
+            sheet = get_sheet()
+            if sheet:
+                data = sheet.get_all_records()
+                df = pd.DataFrame(data)
+                if not df.empty:
+                    summary = df.groupby('Peer Name')['Overall Score'].mean().reset_index()
+                    summary.columns = ['Student Name', 'Avg Received Score']
+                    st.dataframe(summary)
+                else:
+                    st.warning("No data.")
+
+# --- LOGIN ---
+if st.session_state['user'] is None:
+    st.title(TITLE)
+    st.subheader("Step 1: Identification")
+    df_students = load_students()
+    if df_students is not None:
+        names = sorted(df_students['Student Name'].unique().tolist())
+        selected_name = st.selectbox("Select your name:", [""] + names)
+        student_id = st.text_input("Enter your Student Number (Password):", type="password")
+        
+        if st.button("Login"):
+            user_record = df_students[(df_students['Student Name'] == selected_name) & (df_students['Student ID'] == student_id)]
+            if not user_record.empty:
+                st.session_state['user'] = user_record.iloc[0].to_dict()
+                st.rerun()
+            else:
+                st.error("Login Failed.")
+
+# --- EVALUATION FORM ---
+else:
+    user = st.session_state['user']
+    st.title(TITLE)
+    st.markdown(CONFIDENTIALITY_TEXT)
+    
+    col1, col2 = st.columns([8,1])
+    with col1: st.info(f"Logged in as: **{user['Student Name']}** (Group {user['Group #']})")
+    with col2: 
+        if st.button("Logout"):
+            st.session_state['user'] = None
+            st.rerun()
+            
+    df_students = load_students()
+    group_members = df_students[df_students['Group #'] == user['Group #']]
+    
+    with st.form("eval_form"):
+        st.subheader("FIVE EVALUATION CRITERIA")
+        st.write("Assign 0-100% for each criterion.")
+        st.caption(MULTIPLE_ATTEMPT_TEXT)
+        
+        submission_data = []
+        
+        for idx, member in group_members.iterrows():
+            st.markdown(f"--- \n ### Evaluating: {member['Student Name']}")
+            if member['Student Name'] == user['Student Name']:
+                st.caption("(This is your Self-Evaluation)")
+
+            cols = st.columns(len(CRITERIA) + 1)
+            member_scores = []
+            
+            # Inputs
+            for i, criterion in enumerate(CRITERIA):
+                with cols[i]:
+                    score = st.number_input(
+                        criterion, 
+                        min_value=0, max_value=100, value=0, step=5, 
+                        key=f"{member['Student ID']}_{i}"
+                    )
+                    member_scores.append(score)
+            
+            # Automatic Calculation and Highlighting
+            avg = sum(member_scores) / len(member_scores) if member_scores else 0
+            
+            # Determine Color (Red if < 80, Green if >= 80)
+            color_class = "score-red" if avg < 80 else "score-green"
+            
+            with cols[-1]:
+                # HTML Box for the score
+                st.markdown(f"""
+                <div class="score-box {color_class}">
+                    AVG<br>{avg:.1f}%
+                </div>
+                """, unsafe_allow_html=True)
+            
+            row = {
+                "Evaluator": user['Student Name'],
+                "Evaluator ID": str(user['Student ID']),
+                "Group": user['Group #'],
+                "Peer Name": member['Student Name'],
+                "Peer ID": str(member['Student ID']),
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Overall Score": avg
+            }
+            for i, cr in enumerate(CRITERIA): row[cr] = member_scores[i]
+            submission_data.append(row)
+
+        st.markdown("---")
+        st.subheader("Comments")
+        
+        q1 = st.text_area("If you gave 90% or less to anyone, please explain why:")
+        q2 = st.text_area("If you expect 90% or less from others, please explain why:")
+        
+        st.subheader("Signature")
+        sig = st.text_input("Signature (Just print name is enough):")
+        
+        submitted = st.form_submit_button("Submit to Google Sheets")
+        
+        if submitted:
+            for row in submission_data:
+                row["Comment (Low Score Given)"] = q1
+                row["Comment (Low Score Received)"] = q2
+                row["Signature"] = sig
+            
+            with st.spinner("Saving..."):
+                success = save_to_google_sheets(user['Student ID'], submission_data)
+                if success:
+                    st.success("Saved successfully!")
+                    st.balloons()
