@@ -86,6 +86,7 @@ def save_to_google_sheets(current_user_id, new_rows):
         except:
             df = pd.DataFrame() 
 
+        # Overwrite logic
         if not df.empty and 'Evaluator ID' in df.columns:
             df['Evaluator ID'] = df['Evaluator ID'].astype(str)
             df = df[df['Evaluator ID'] != str(current_user_id)]
@@ -104,23 +105,6 @@ def save_to_google_sheets(current_user_id, new_rows):
 
 # --- MAIN APP ---
 st.set_page_config(page_title="Peer Evaluation", layout="wide")
-
-# Custom CSS to make the Score Box look good
-st.markdown("""
-<style>
-    .score-box {
-        padding: 10px;
-        border-radius: 10px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 20px;
-        margin-top: 25px;
-        color: white;
-    }
-    .score-green { background-color: #28a745; } /* Green */
-    .score-red { background-color: #dc3545; }   /* Red */
-</style>
-""", unsafe_allow_html=True)
 
 if 'user' not in st.session_state:
     st.session_state['user'] = None
@@ -160,7 +144,7 @@ if st.session_state['user'] is None:
             else:
                 st.error("Login Failed.")
 
-# --- EVALUATION FORM ---
+# --- EVALUATION FORM (LIVE MODE) ---
 else:
     user = st.session_state['user']
     st.title(TITLE)
@@ -176,76 +160,75 @@ else:
     df_students = load_students()
     group_members = df_students[df_students['Group #'] == user['Group #']]
     
-    with st.form("eval_form"):
-        st.subheader("FIVE EVALUATION CRITERIA")
-        st.write("Assign 0-100% for each criterion.")
-        st.caption(MULTIPLE_ATTEMPT_TEXT)
-        
-        submission_data = []
-        
-        for idx, member in group_members.iterrows():
-            st.markdown(f"--- \n ### Evaluating: {member['Student Name']}")
-            if member['Student Name'] == user['Student Name']:
-                st.caption("(This is your Self-Evaluation)")
+    st.subheader("FIVE EVALUATION CRITERIA")
+    st.write("Assign 0-100% for each criterion. **Press Enter/Tab after typing to update the total.**")
+    st.caption(MULTIPLE_ATTEMPT_TEXT)
+    
+    # We removed the "with st.form" wrapper so updates happen instantly
+    submission_data = []
+    
+    for idx, member in group_members.iterrows():
+        st.markdown(f"--- \n ### Evaluating: {member['Student Name']}")
+        if member['Student Name'] == user['Student Name']:
+            st.caption("(This is your Self-Evaluation)")
 
-            cols = st.columns(len(CRITERIA) + 1)
-            member_scores = []
-            
-            # Inputs
-            for i, criterion in enumerate(CRITERIA):
-                with cols[i]:
-                    score = st.number_input(
-                        criterion, 
-                        min_value=0, max_value=100, value=0, step=5, 
-                        key=f"{member['Student ID']}_{i}"
-                    )
-                    member_scores.append(score)
-            
-            # Automatic Calculation and Highlighting
-            avg = sum(member_scores) / len(member_scores) if member_scores else 0
-            
-            # Determine Color (Red if < 80, Green if >= 80)
-            color_class = "score-red" if avg < 80 else "score-green"
-            
-            with cols[-1]:
-                # HTML Box for the score
-                st.markdown(f"""
-                <div class="score-box {color_class}">
-                    AVG<br>{avg:.1f}%
-                </div>
-                """, unsafe_allow_html=True)
-            
-            row = {
-                "Evaluator": user['Student Name'],
-                "Evaluator ID": str(user['Student ID']),
-                "Group": user['Group #'],
-                "Peer Name": member['Student Name'],
-                "Peer ID": str(member['Student ID']),
-                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Overall Score": avg
-            }
-            for i, cr in enumerate(CRITERIA): row[cr] = member_scores[i]
-            submission_data.append(row)
+        cols = st.columns(len(CRITERIA) + 1)
+        member_scores = []
+        
+        # Inputs
+        for i, criterion in enumerate(CRITERIA):
+            with cols[i]:
+                # The input box
+                score = st.number_input(
+                    criterion, 
+                    min_value=0, max_value=100, value=0, step=5, 
+                    key=f"{member['Student ID']}_{i}"
+                )
+                # Highlight Logic: If < 80, show visual warning
+                if score < 80:
+                    st.markdown(":red[⚠️ **< 80%**]")
+                
+                member_scores.append(score)
+        
+        # Automatic Calculation
+        avg = sum(member_scores) / len(member_scores) if member_scores else 0
+        
+        # Standard Metric Box (Reverted as requested)
+        with cols[-1]:
+            st.metric(label="OVERALL SCORE", value=f"{avg:.1f}%")
+        
+        row = {
+            "Evaluator": user['Student Name'],
+            "Evaluator ID": str(user['Student ID']),
+            "Group": user['Group #'],
+            "Peer Name": member['Student Name'],
+            "Peer ID": str(member['Student ID']),
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Overall Score": avg
+        }
+        for i, cr in enumerate(CRITERIA): row[cr] = member_scores[i]
+        submission_data.append(row)
 
-        st.markdown("---")
-        st.subheader("Comments")
+    st.markdown("---")
+    st.subheader("Comments")
+    
+    q1 = st.text_area("If you gave 90% or less to anyone, please explain why:")
+    q2 = st.text_area("If you expect 90% or less from others, please explain why:")
+    
+    st.subheader("Signature")
+    sig = st.text_input("Signature (Just print name is enough):")
+    
+    st.write("") # Spacer
+    
+    # Submit Button (Now standalone)
+    if st.button("Submit to Google Sheets", type="primary"):
+        for row in submission_data:
+            row["Comment (Low Score Given)"] = q1
+            row["Comment (Low Score Received)"] = q2
+            row["Signature"] = sig
         
-        q1 = st.text_area("If you gave 90% or less to anyone, please explain why:")
-        q2 = st.text_area("If you expect 90% or less from others, please explain why:")
-        
-        st.subheader("Signature")
-        sig = st.text_input("Signature (Just print name is enough):")
-        
-        submitted = st.form_submit_button("Submit to Google Sheets")
-        
-        if submitted:
-            for row in submission_data:
-                row["Comment (Low Score Given)"] = q1
-                row["Comment (Low Score Received)"] = q2
-                row["Signature"] = sig
-            
-            with st.spinner("Saving..."):
-                success = save_to_google_sheets(user['Student ID'], submission_data)
-                if success:
-                    st.success("Saved successfully!")
-                    st.balloons()
+        with st.spinner("Saving..."):
+            success = save_to_google_sheets(user['Student ID'], submission_data)
+            if success:
+                st.success("Saved successfully!")
+                st.balloons()
